@@ -7,6 +7,9 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Headers;
 
 namespace homecloud_function
 {
@@ -14,22 +17,42 @@ namespace homecloud_function
     {
         [FunctionName("Devops")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
-            ILogger log)
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
+            ILogger logger)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            logger.LogInformation("C# HTTP trigger function processed a request.");
 
-            string name = req.Query["name"];
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+            
+            if(data.organization is null || data.project is null)
+            {
+                logger.LogError("Invalid request. Request body: {RequestBody}", requestBody);
+                return new BadRequestResult();
+            }
 
-            string responseMessage = string.IsNullOrEmpty(name)
-                ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-                : $"Hello, {name}. This HTTP triggered function executed successfully.";
+            var pipes = await ListPipelines("mobius-platform", "Mobius 2.0");
+            return new OkObjectResult(pipes);
+        }
 
-            return new OkObjectResult(responseMessage);
+        private static async Task<List<string>> ListPipelines(string organization, string project)
+        {
+            var personalaccesstoken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
+    
+            var uri = $"GET https://dev.azure.com/{organization}/{project}/_apis/pipelines?api-version=6.0-preview.1";
+            HttpClient client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                "Basic",
+                Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(string.Format("{0}:{1}", "", personalaccesstoken))));
+
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, uri);
+
+            //Read Server Response
+            HttpResponseMessage response = await client.SendAsync(request);
+            bool isValidMpn = await response.Content.ReadAsAsync<bool>();
+
+            return new List<string>();
         }
     }
 }
