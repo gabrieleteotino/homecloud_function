@@ -24,6 +24,12 @@ View templates
 func templates list
 ```
 
+Execute function locally
+
+```
+func start
+```
+
 ## DevOps API
 
 - [Git Reference](https://docs.microsoft.com/en-us/rest/api/azure/devops/git/?view=azure-devops-rest-6.0)

@@ -25,22 +25,23 @@ namespace homecloud_function
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
-            
-            if(data.organization is null || data.project is null)
+
+            if (data.organization is null || data.project is null)
             {
                 logger.LogError("Invalid request. Request body: {RequestBody}", requestBody);
                 return new BadRequestResult();
             }
 
-            var pipes = await ListPipelines("mobius-platform", "Mobius 2.0");
+            var pipes = await ListPipelines(data.organization, data.project, logger);
             return new OkObjectResult(pipes);
         }
 
-        private static async Task<List<string>> ListPipelines(string organization, string project)
+        private static async Task<List<string>> ListPipelines(string organization, string project, ILogger logger)
         {
             var personalaccesstoken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
-    
+            logger.LogInformation(personalaccesstoken);
             var uri = $"GET https://dev.azure.com/{organization}/{project}/_apis/pipelines?api-version=6.0-preview.1";
+            logger.LogInformation(uri);
             HttpClient client = new HttpClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
                 "Basic",
@@ -50,8 +51,9 @@ namespace homecloud_function
 
             //Read Server Response
             HttpResponseMessage response = await client.SendAsync(request);
-            bool isValidMpn = await response.Content.ReadAsAsync<bool>();
-
+            logger.LogInformation($"Status code: {response.StatusCode} reason: {response.ReasonPhrase}");
+            var results = await response.Content.ReadAsAsync<List<dynamic>>();
+            logger.LogInformation($"Results len: {results.Count}");
             return new List<string>();
         }
     }
