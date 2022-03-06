@@ -22,26 +22,26 @@ namespace homecloud_function
         {
             logger.LogInformation("C# HTTP trigger function processed a request.");
 
-
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
+            logger.LogDebug("Request body: {body}", requestBody);
+            var data = JsonConvert.DeserializeObject<DevopsProjectRequest>(requestBody);
 
-            if (data.organization is null || data.project is null)
+            if (data.Organization is null || data.Project is null)
             {
                 logger.LogError("Invalid request. Request body: {RequestBody}", requestBody);
                 return new BadRequestResult();
             }
 
-            var pipes = await ListPipelines(data.organization, data.project, logger);
+            var pipes = await ListPipelines(data.Organization, data.Project, logger);
             return new OkObjectResult(pipes);
         }
 
-        private static async Task<List<string>> ListPipelines(string organization, string project, ILogger logger)
+        private static async Task<IEnumerable<DevopsModels.Pipeline>> ListPipelines(string organization, string project, ILogger logger)
         {
             var personalaccesstoken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
-            logger.LogInformation(personalaccesstoken);
-            var uri = $"GET https://dev.azure.com/{organization}/{project}/_apis/pipelines?api-version=6.0-preview.1";
-            logger.LogInformation(uri);
+            logger.LogDebug("PAT: {pat}", personalaccesstoken);
+            var uri = $"https://dev.azure.com/{Uri.EscapeDataString(organization)}/{Uri.EscapeDataString(project)}/_apis/pipelines?api-version=6.0-preview.1";
+            logger.LogDebug("URI: {uri}", uri);
             HttpClient client = new HttpClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
                 "Basic",
@@ -49,12 +49,22 @@ namespace homecloud_function
 
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, uri);
 
-            //Read Server Response
+            // Read Server Response
             HttpResponseMessage response = await client.SendAsync(request);
             logger.LogInformation($"Status code: {response.StatusCode} reason: {response.ReasonPhrase}");
-            var results = await response.Content.ReadAsAsync<List<dynamic>>();
-            logger.LogInformation($"Results len: {results.Count}");
-            return new List<string>();
+            dynamic result = await response.Content.ReadAsAsync<dynamic>();
+            logger.LogInformation($"Results len: {result.count}");
+
+            var list = new List<DevopsModels.Pipeline>();
+            foreach (var pipeline in result.value)
+            {
+                var pipelineModel = new DevopsModels.Pipeline{
+                    Name = pipeline.name,
+                    Id = pipeline.id
+                };
+                list.Add(pipelineModel);
+            }
+            return list;
         }
     }
 }
