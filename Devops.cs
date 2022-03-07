@@ -36,7 +36,7 @@ namespace homecloud_function
             return new OkObjectResult(pipes);
         }
 
-        private static async Task<IEnumerable<DevopsModels.Pipeline>> ListPipelines(string organization, string project, ILogger logger)
+        private static async Task<IEnumerable<Models.DevopsApi.Pipeline>> ListPipelines(string organization, string project, ILogger logger)
         {
             var personalaccesstoken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
             logger.LogDebug("PAT: {pat}", personalaccesstoken);
@@ -52,19 +52,12 @@ namespace homecloud_function
             // Read Server Response
             HttpResponseMessage response = await client.SendAsync(request);
             logger.LogInformation($"Status code: {response.StatusCode} reason: {response.ReasonPhrase}");
-            dynamic result = await response.Content.ReadAsAsync<dynamic>();
-            logger.LogInformation($"Results len: {result.count}");
+            var result = await response.Content.ReadAsAsync<Models.DevopsApi.PipelineResponse>();
+            logger.LogInformation($"Results len: {result.Count}");
 
-            var list = new List<DevopsModels.Pipeline>();
-            foreach (var pipeline in result.value)
-            {
-                var pipelineModel = new DevopsModels.Pipeline{
-                    Name = pipeline.name,
-                    Id = pipeline.id
-                };
-                list.Add(pipelineModel);
-            }
+            var list = result.Value;
             return list;
         }
+
     }
 }
