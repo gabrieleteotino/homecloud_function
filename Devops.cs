@@ -10,14 +10,18 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using Contracts.Messages;
+using Contracts.Requests;
 
 namespace homecloud_function
 {
     public static class Devops
     {
         [FunctionName("Devops")]
-        public static async Task<IActionResult> Run(
+        [return: Queue("pipeline", Connection = "DataStorage")]
+        public static async Task<PipelineListUpdate> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
+            [Blob("pipeline-updates/{rand-guid}.json", FileAccess.Write, Connection = "DataStorage")] TextWriter outputBlob,
             ILogger logger)
         {
             logger.LogInformation("C# HTTP trigger function processed a request.");
@@ -29,11 +33,16 @@ namespace homecloud_function
             if (data.Organization is null || data.Project is null)
             {
                 logger.LogError("Invalid request. Request body: {RequestBody}", requestBody);
-                return new BadRequestResult();
+                throw new ArgumentException();
             }
 
             var pipes = await ListPipelines(data.Organization, data.Project, logger);
-            return new OkObjectResult(pipes);
+            using (JsonTextWriter jtw = new JsonTextWriter(outputBlob))
+            {
+                JsonSerializer ser = new JsonSerializer();
+                ser.Serialize(jtw, pipes);
+            }
+            return new PipelineListUpdate { BlobId = "3" };
         }
 
         private static async Task<IEnumerable<Models.DevopsApi.Pipeline>> ListPipelines(string organization, string project, ILogger logger)
@@ -58,6 +67,5 @@ namespace homecloud_function
             var list = result.Value;
             return list;
         }
-
     }
 }
