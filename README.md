@@ -30,6 +30,36 @@ Execute function locally
 func start
 ```
 
+### DI and Automapper
+
+Install nuget
+
+```
+dotnet add package Microsoft.Azure.Functions.Extensions
+dotnet add package Microsoft.Extensions.DependencyInjection
+dotnet add package Microsoft.NET.Sdk.Functions
+dotnet add package AutoMapper
+dotnet add package AutoMapper.Extensions.Microsoft.DependencyInjection
+```
+
+Add a Startup.cs class
+
+```
+using Microsoft.Azure.Functions.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
+[assembly: FunctionsStartup(typeof(Homecloud.Function.Startup))]
+namespace Homecloud.Function
+{
+    public class Startup : FunctionsStartup
+    {
+        public override void Configure(IFunctionsHostBuilder builder)
+        {
+        }
+    }
+}
+```
+
 ## DevOps API
 
 - [Git Reference](https://docs.microsoft.com/en-us/rest/api/azure/devops/git/?view=azure-devops-rest-6.0)

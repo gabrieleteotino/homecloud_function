@@ -1,4 +1,4 @@
-namespace Contracts.Requests
+namespace Homecloud.Contracts.Requests
 {
     public class DevopsProjectRequest
     {

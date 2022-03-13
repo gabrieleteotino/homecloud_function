@@ -2,7 +2,7 @@ using System;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
 
-namespace homecloud_function
+namespace Homecloud
 {
     public class DevopsTimer
     {

@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
@@ -10,10 +9,10 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using Contracts.Messages;
-using Contracts.Requests;
+using Homecloud.Contracts.Messages;
+using Homecloud.Contracts.Requests;
 
-namespace homecloud_function
+namespace Homecloud
 {
     public static class Devops
     {

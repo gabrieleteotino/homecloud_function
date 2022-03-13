@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Models.DevopsApi
+namespace Homecloud.Models.DevopsApi
 {
     internal class ListResponse<T>
     {

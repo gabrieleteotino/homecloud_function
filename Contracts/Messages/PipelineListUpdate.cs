@@ -1,4 +1,4 @@
-namespace Contracts.Messages
+namespace Homecloud.Contracts.Messages
 {
     public class PipelineListUpdate
     {
