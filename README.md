@@ -44,7 +44,7 @@ dotnet add package AutoMapper.Extensions.Microsoft.DependencyInjection
 
 Add a Startup.cs class
 
-```
+```csharp
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -58,6 +58,29 @@ namespace Homecloud.Function
         }
     }
 }
+```
+
+Add profiles for Automapper
+
+```csharp
+using AutoMapper;
+
+namespace Homecloud.Models.Profiles
+{
+    public class OrganizationProfile : Profile
+    {
+        public OrganizationProfile()
+        {
+            CreateMap<Homecloud.Models.Devops.OrganizationProject, Homecloud.Models.DevopsApi.OrganizationProject>();
+        }
+    }
+}
+```
+
+Register profiles in Startup
+
+```csharp
+    builder.Services.AddAutoMapper(typeof(Startup));
 ```
 
 ## DevOps API
