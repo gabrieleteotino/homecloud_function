@@ -4,13 +4,13 @@ using System.Text;
 
 namespace Homecloud.Contracts.Messages
 {
-    public class CreateOrganizationProject
+    public class CreateProjectCommand
     {
         public string Organization { get; init; }
         public string Project { get; init; }
         public string Hash { get; init; }
 
-        public CreateOrganizationProject(string organization, string project)
+        public CreateProjectCommand(string organization, string project)
         {
             if(string.IsNullOrWhiteSpace(organization)) throw new ArgumentException(nameof(organization));
             if(string.IsNullOrWhiteSpace(project)) throw new ArgumentException(nameof(project));

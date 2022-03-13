@@ -6,7 +6,7 @@ namespace Homecloud.Models.Profiles
     {
         public OrganizationProfile()
         {
-            CreateMap<Homecloud.Models.Devops.OrganizationProject, Homecloud.Models.DevopsApi.OrganizationProject>();
+            // CreateMap<Homecloud.Models.Devops.Project, Homecloud.Models.DevopsApi.OrganizationProject>();
         }
     }
 }

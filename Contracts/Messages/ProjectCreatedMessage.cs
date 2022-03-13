@@ -4,11 +4,11 @@ using System.Text;
 
 namespace Homecloud.Contracts.Messages
 {
-    public class OrganizationProjectCreated
+    public class ProjectCreatedMessage
     {
         public string Hash { get; init; }
 
-        public OrganizationProjectCreated(string hash)
+        public ProjectCreatedMessage(string hash)
         {
             Hash = hash;
         }

@@ -12,12 +12,12 @@ using System;
 namespace Homecloud
 {
     [StorageAccount("DataStorage")]
-    public static class FunctionsOrganizationProject
+    public static class FunctionsProject
     {
         [FunctionName("CreateProjectRest")]
-        public static DevopsProjectCreating SendCreateCommand(
+        public static DevopsProjectCreatingResponse SendCreateCommand(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "Project")] CreateDevopsProjectRequest createDevopsProjectRequest,
-            [Queue("create-project")] out CreateOrganizationProject createOrganizationProject,
+            [Queue("create-project")] out CreateProjectCommand createOrganizationProject,
             ILogger logger)
         {
             logger.LogInformation("C# HTTP trigger function processed a request.");
@@ -26,13 +26,13 @@ namespace Homecloud
             createOrganizationProject = new(createDevopsProjectRequest.Organization, createDevopsProjectRequest.Project);
             logger.LogDebug($"Command: {JsonConvert.SerializeObject(createOrganizationProject)}");
 
-            return new DevopsProjectCreating { Hash = createOrganizationProject.Hash };
+            return new DevopsProjectCreatingResponse { Hash = createOrganizationProject.Hash };
         }
 
         [FunctionName("CreateProject")]
         [return: Queue("project-created")]
-        public static async Task<OrganizationProjectCreated> ProcessCreateCommand(
-            [QueueTrigger("create-project")] Homecloud.Contracts.Messages.CreateOrganizationProject createOrganizationProject,
+        public static async Task<ProjectCreatedMessage> ProcessCreateCommand(
+            [QueueTrigger("create-project")] Homecloud.Contracts.Messages.CreateProjectCommand createOrganizationProject,
             [Blob("organization-project/{Hash}.json", FileAccess.ReadWrite)] Azure.Storage.Blobs.Specialized.BlockBlobClient blobClient,
             ILogger logger
         )
@@ -43,16 +43,16 @@ namespace Homecloud
                 throw new InvalidOperationException("The blob already exists");
             }
             logger.LogDebug("Creating organizationproject entity");
-            var organizationProject = new Models.Devops.OrganizationProject(createOrganizationProject);
+            var organizationProject = new Models.Devops.Project(createOrganizationProject);
             using var ms = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(organizationProject)));
             await blobClient.UploadAsync(ms);
-            return new OrganizationProjectCreated(organizationProject.Hash);
+            return new ProjectCreatedMessage(organizationProject.Hash);
         }
 
         [FunctionName("ProjectCreated")]
         public static async Task ProcessProjectCreatedMessage(
-            [QueueTrigger("project-created")] OrganizationProjectCreated organizationProjectCreated,
-            [Blob("organization-project/{ProjectHash}.json")] Models.Devops.OrganizationProject organizationProject,
+            [QueueTrigger("project-created")] ProjectCreatedMessage organizationProjectCreated,
+            [Blob("organization-project/{ProjectHash}.json")] Models.Devops.Project organizationProject,
             [Queue("update-pipelines")] IAsyncCollector<UpdatePipelines> pipelineMessages,
             ILogger logger
         )
