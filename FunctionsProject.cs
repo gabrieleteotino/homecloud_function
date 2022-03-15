@@ -32,8 +32,8 @@ namespace Homecloud
         [FunctionName("CreateProject")]
         [return: Queue("project-created")]
         public static async Task<ProjectCreatedMessage> ProcessCreateCommand(
-            [QueueTrigger("create-project")] Homecloud.Contracts.Messages.CreateProjectCommand createOrganizationProject,
-            [Blob("organization-project/{Hash}.json", FileAccess.ReadWrite)] Azure.Storage.Blobs.Specialized.BlockBlobClient blobClient,
+            [QueueTrigger("create-project")] Homecloud.Contracts.Messages.CreateProjectCommand createProject,
+            [Blob("projects/{Hash}.json", FileAccess.ReadWrite)] Azure.Storage.Blobs.Specialized.BlockBlobClient blobClient,
             ILogger logger
         )
         {
@@ -43,7 +43,7 @@ namespace Homecloud
                 throw new InvalidOperationException("The blob already exists");
             }
             logger.LogDebug("Creating organizationproject entity");
-            var organizationProject = new Models.Devops.Project(createOrganizationProject);
+            var organizationProject = Models.Devops.ProjectFactory.CreateProjectFromMessage(createProject);
             using var ms = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(organizationProject)));
             await blobClient.UploadAsync(ms);
             return new ProjectCreatedMessage(organizationProject.Hash);
@@ -51,14 +51,15 @@ namespace Homecloud
 
         [FunctionName("ProjectCreated")]
         public static async Task ProcessProjectCreatedMessage(
-            [QueueTrigger("project-created")] ProjectCreatedMessage organizationProjectCreated,
-            [Blob("organization-project/{Hash}.json")] Models.Devops.Project organizationProject,
+            [QueueTrigger("project-created")] ProjectCreatedMessage projectCreated,
+            [Blob("projects/{Hash}.json", FileAccess.Read)] string projectString,
             [Queue("update-pipelines")] IAsyncCollector<UpdatePipelinesCommand> pipelineMessages,
             ILogger logger
         )
         {
             logger.LogInformation("C# Queue trigger processing a command");
-            var pipelineMessage = new UpdatePipelinesCommand(organizationProjectCreated.Hash, organizationProject.ApiUrl);
+            var project = JsonConvert.DeserializeObject<Models.Devops.Project>(projectString);
+            var pipelineMessage = new UpdatePipelinesCommand(project.Hash, project.ApiUrl);
             await pipelineMessages.AddAsync(pipelineMessage);
         }
     }

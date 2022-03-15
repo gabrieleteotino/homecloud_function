@@ -1,41 +1,34 @@
 using System;
 using System.Collections.Generic;
+using Homecloud.Contracts.Messages;
 using Newtonsoft.Json;
 
 namespace Homecloud.Models.Devops
 {
-    public sealed class Project
+    public record Project(Guid Id, string OrganizationName, string ProjectName, string Hash, DateTime CreationDate)
     {
-        public Guid Id { get; init; }
-        public string OrganizationName { get; init; }
-        public string ProjectName { get; init; }
-        public string Hash { get; init; }
-
-        public DateTime CreationDate { get; init; }
-
-        public Project(Contracts.Messages.CreateProjectCommand commandMessage)
-        {
-            this.Id = Guid.NewGuid();
-            OrganizationName = commandMessage.Organization;
-            ProjectName = commandMessage.Project;
-            Hash = commandMessage.Hash;
-            CreationDate = DateTime.UtcNow;
-        }
-
-        public Project(Guid id, string organization, string project)
-        {
-            Id = id;
-            OrganizationName = organization;
-            ProjectName = project;
-        }
+        public int PipelinesCount { get; init; }
 
         [JsonIgnore]
-        public string ApiUrl
-        {
-            get
+        public string ApiUrl => $"https://dev.azure.com/{Uri.EscapeDataString(OrganizationName)}/{Uri.EscapeDataString(ProjectName)}/_apis";
+    };
+
+    public static class ProjectFactory
+    {
+        public static Project CreateProjectFromMessage(Contracts.Messages.CreateProjectCommand commandMessage) =>
+            new(Id: Guid.NewGuid(),
+                OrganizationName: commandMessage.Organization,
+                ProjectName: commandMessage.Project,
+                Hash: commandMessage.Hash,
+                CreationDate: DateTime.UtcNow);
+    }
+
+    public static class ProjectExtensions
+    {
+        public static Project ProcessPipelineUpdated(this Project project, PipelineUpdatedMessage message) =>
+            project with
             {
-                return $"https://dev.azure.com/{Uri.EscapeDataString(OrganizationName)}/{Uri.EscapeDataString(ProjectName)}/_apis";
-            }
-        }
+                PipelinesCount = message.Count
+            };
     }
 }
