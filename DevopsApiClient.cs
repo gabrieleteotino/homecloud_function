@@ -12,6 +12,7 @@ namespace Homecloud
         private readonly string _pat;
         private readonly string _baseUrl;
         private readonly ILogger _logger;
+        private Action<string> _dataReceivedCallback;
 
         internal DevopsApiClient(string pat, string baseUrl, ILogger logger)
         {
@@ -34,11 +35,18 @@ namespace Homecloud
             // Read Server Response
             HttpResponseMessage response = await client.SendAsync(request);
             _logger.LogInformation($"Status code: {response.StatusCode} reason: {response.ReasonPhrase}");
+            _dataReceivedCallback(await response.Content.ReadAsStringAsync());
+
             var result = await response.Content.ReadAsAsync<Models.DevopsApi.PipelineResponse>();
             _logger.LogInformation($"Results len: {result.Count}");
 
             var list = result.Value;
             return list;
+        }
+
+        internal void OnDataReceived(Action<string> callback)
+        {
+            _dataReceivedCallback = callback;
         }
     }
 }

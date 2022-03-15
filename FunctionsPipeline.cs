@@ -15,15 +15,15 @@ namespace Homecloud
     {
         [FunctionName("UpdatePipelines")]
         public static async Task Run(
-            [QueueTrigger("update-pipelines")] UpdatePipelines updatePipelinesCommand,
+            [QueueTrigger("update-pipelines")] UpdatePipelinesCommand updatePipelinesCommand,
+            [Blob("devops-api-raw-data/{ProjectHash}.json")] string blobResponse,
             ILogger logger)
         {
-
             logger.LogInformation($"C# Queue trigger function processing command: {JsonConvert.SerializeObject(updatePipelinesCommand)}");
             var personalAccessToken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
             var client = new DevopsApiClient(personalAccessToken, updatePipelinesCommand.ApiUrl, logger);
+            client.OnDataReceived(response => blobResponse = response);
             var pipelines = await client.ListPipelines();
-            
         }
     }
 }

@@ -1,11 +1,11 @@
 namespace Homecloud.Contracts.Messages
 {
-    public class UpdatePipelines
+    public class UpdatePipelinesCommand
     {
         public string ProjectHash { get; init; }
         public string ApiUrl { get; init; }
 
-        public UpdatePipelines(string projectHash, string apiUrl)
+        public UpdatePipelinesCommand(string projectHash, string apiUrl)
         {
             ProjectHash = projectHash;
             ApiUrl = apiUrl;

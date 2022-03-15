@@ -52,13 +52,13 @@ namespace Homecloud
         [FunctionName("ProjectCreated")]
         public static async Task ProcessProjectCreatedMessage(
             [QueueTrigger("project-created")] ProjectCreatedMessage organizationProjectCreated,
-            [Blob("organization-project/{ProjectHash}.json")] Models.Devops.Project organizationProject,
-            [Queue("update-pipelines")] IAsyncCollector<UpdatePipelines> pipelineMessages,
+            [Blob("organization-project/{Hash}.json")] Models.Devops.Project organizationProject,
+            [Queue("update-pipelines")] IAsyncCollector<UpdatePipelinesCommand> pipelineMessages,
             ILogger logger
         )
         {
             logger.LogInformation("C# Queue trigger processing a command");
-            var pipelineMessage = new UpdatePipelines(organizationProjectCreated.Hash, organizationProject.ApiUrl);
+            var pipelineMessage = new UpdatePipelinesCommand(organizationProjectCreated.Hash, organizationProject.ApiUrl);
             await pipelineMessages.AddAsync(pipelineMessage);
         }
     }
