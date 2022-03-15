@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 
 namespace Homecloud.Models.DevopsApi
 {
-
     internal class PipelineResponse : ListResponse<Pipeline> { }
 
     internal class Pipeline

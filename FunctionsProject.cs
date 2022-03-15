@@ -59,6 +59,8 @@ namespace Homecloud
         {
             logger.LogInformation("C# Queue trigger processing a command");
             var project = JsonConvert.DeserializeObject<Models.Devops.Project>(projectString);
+            if (projectCreated.Hash != project.Hash) throw new InvalidDataException($"Project blob {projectCreated.Hash}.json contains a project with invalid hash");
+
             var pipelineMessage = new UpdatePipelinesCommand(project.Hash, project.ApiUrl);
             await pipelineMessages.AddAsync(pipelineMessage);
         }
