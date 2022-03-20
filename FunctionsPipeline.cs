@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Homecloud.Contracts.Messages;
@@ -32,15 +33,19 @@ namespace Homecloud
         [FunctionName("UpdatePipelines")]
         public static async Task ProcessUpdatePipelinesCommand(
             [QueueTrigger("update-pipelines")] UpdatePipelinesCommand updatePipelinesCommand,
-            [Blob("devops-api-raw-data/{ProjectHash}-{DateTime}.json", FileAccess.ReadWrite)] string blobResponse,
+            IBinder binder,
             ILogger logger)
         {
             logger.LogInformation($"ProcessUpdatePipelinesCommand - C# Queue trigger function processing command: {JsonConvert.SerializeObject(updatePipelinesCommand)}");
             var personalAccessToken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
             var client = new DevopsApiClient(personalAccessToken, updatePipelinesCommand.ApiUrl, logger);
-            client.OnDataReceived(response => blobResponse = response);
             var pipelines = await client.ListPipelines();
             logger.LogInformation("Pipelines data received");
+
+            using var writer = await binder.BindAsync<TextWriter>(new BlobAttribute($"pipelines-data/{updatePipelinesCommand.ProjectHash}", FileAccess.Write));
+            await writer.WriteAsync(JsonConvert.SerializeObject(pipelines));
+
+            logger.LogInformation("Pipelines data saved");
         }
     }
 }
