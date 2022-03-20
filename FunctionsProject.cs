@@ -15,12 +15,12 @@ namespace Homecloud
     public static class FunctionsProject
     {
         [FunctionName("CreateProjectRest")]
-        public static DevopsProjectCreatingResponse SendCreateCommand(
+        public static DevopsProjectCreatingResponse SendCreateProjectCommand(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "Project")] CreateDevopsProjectRequest createDevopsProjectRequest,
             [Queue("create-project")] out CreateProjectCommand createOrganizationProject,
             ILogger logger)
         {
-            logger.LogInformation("C# HTTP trigger function processed a request.");
+            logger.LogInformation("SendCreateProjectCommand - C# HTTP trigger function processed a request.");
             logger.LogDebug($"Request: {JsonConvert.SerializeObject(createDevopsProjectRequest)}");
 
             createOrganizationProject = new(createDevopsProjectRequest.Organization, createDevopsProjectRequest.Project);
@@ -31,13 +31,13 @@ namespace Homecloud
 
         [FunctionName("CreateProject")]
         [return: Queue("project-created")]
-        public static async Task<ProjectCreatedMessage> ProcessCreateCommand(
+        public static async Task<ProjectCreatedMessage> ProcessCreateProjectCommand(
             [QueueTrigger("create-project")] Homecloud.Contracts.Messages.CreateProjectCommand createProject,
             [Blob("projects/{Hash}.json", FileAccess.ReadWrite)] Azure.Storage.Blobs.Specialized.BlockBlobClient blobClient,
             ILogger logger
         )
         {
-            logger.LogInformation("C# Queue trigger processed a command");
+            logger.LogInformation("ProcessCreateProjectCommand C# Queue trigger processed a command");
             if (await blobClient.ExistsAsync())
             {
                 throw new InvalidOperationException("The blob already exists");
@@ -57,7 +57,7 @@ namespace Homecloud
             ILogger logger
         )
         {
-            logger.LogInformation("C# Queue trigger processing a command");
+            logger.LogInformation("ProcessProjectCreatedMessage - C# Queue trigger processing a command");
             var project = JsonConvert.DeserializeObject<Models.Devops.Project>(projectString);
             if (projectCreated.Hash != project.Hash) throw new InvalidDataException($"Project blob {projectCreated.Hash}.json contains a project with invalid hash");
 

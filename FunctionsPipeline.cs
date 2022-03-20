@@ -16,11 +16,11 @@ namespace Homecloud
     {
         [FunctionName("UpdatePipelinesRest")]
         public static PipelineUpdatingResponse SendUpdatePipelinesCommand(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "Project")] UpdatePipelineRequest updatePipelineRequest,
-            [Queue("pdate-pipelines")] out UpdatePipelinesCommand updatePipelinesCommand,
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "UpdatePipelines")] UpdatePipelineRequest updatePipelineRequest,
+            [Queue("update-pipelines")] out UpdatePipelinesCommand updatePipelinesCommand,
             ILogger logger)
         {
-            logger.LogInformation("C# HTTP trigger function processed a request.");
+            logger.LogInformation("SendUpdatePipelinesCommand - C# HTTP trigger function processed a request.");
             logger.LogDebug($"Request: {JsonConvert.SerializeObject(updatePipelineRequest)}");
 
             updatePipelinesCommand = new(updatePipelineRequest.Hash, updatePipelineRequest.ApiUrl);
@@ -30,12 +30,12 @@ namespace Homecloud
         }
 
         [FunctionName("UpdatePipelines")]
-        public static async Task Run(
+        public static async Task ProcessUpdatePipelinesCommand(
             [QueueTrigger("update-pipelines")] UpdatePipelinesCommand updatePipelinesCommand,
-            [Blob("devops-api-raw-data/{ProjectHash}.json", FileAccess.Write)] string blobResponse,
+            [Blob("devops-api-raw-data/{ProjectHash}-{DateTime}.json", FileAccess.ReadWrite)] string blobResponse,
             ILogger logger)
         {
-            logger.LogInformation($"C# Queue trigger function processing command: {JsonConvert.SerializeObject(updatePipelinesCommand)}");
+            logger.LogInformation($"ProcessUpdatePipelinesCommand - C# Queue trigger function processing command: {JsonConvert.SerializeObject(updatePipelinesCommand)}");
             var personalAccessToken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
             var client = new DevopsApiClient(personalAccessToken, updatePipelinesCommand.ApiUrl, logger);
             client.OnDataReceived(response => blobResponse = response);
