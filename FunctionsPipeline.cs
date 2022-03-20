@@ -1,8 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Homecloud.Contracts.Commands;
 using Homecloud.Contracts.Messages;
 using Homecloud.Contracts.Requests;
 using Homecloud.Contracts.Responses;
@@ -19,7 +19,7 @@ namespace Homecloud
         [FunctionName("UpdatePipelinesRest")]
         public static PipelineUpdatingResponse SendUpdatePipelinesCommand(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "UpdatePipelines")] UpdatePipelineRequest updatePipelineRequest,
-            [Queue("update-pipelines")] out UpdatePipelinesCommand updatePipelinesCommand,
+            [Queue("update-pipelines")] out RefreshPipelinesCommand updatePipelinesCommand,
             ILogger logger)
         {
             logger.LogInformation("SendUpdatePipelinesCommand - C# HTTP trigger function processed a request.");
@@ -33,7 +33,7 @@ namespace Homecloud
 
         [FunctionName("UpdatePipelines")]
         public static async Task ProcessUpdatePipelinesCommand(
-            [QueueTrigger("update-pipelines")] UpdatePipelinesCommand updatePipelinesCommand,
+            [QueueTrigger("update-pipelines")] RefreshPipelinesCommand updatePipelinesCommand,
             IBinder binder,
             ILogger logger)
         {
@@ -52,13 +52,13 @@ namespace Homecloud
         [FunctionName("RefreshPipelineRunsRest")]
         public static async Task SendRefreshPipelineRunsCommand(
                     [HttpTrigger(AuthorizationLevel.Function, "post", Route = "RefreshPipelineRuns")] RefreshPipelineRunsRequest refreshPipelineRunsRequest,
-                    [Queue("refresh-pipeline-runs")] IAsyncCollector<DownloadPipelineRunsCommand> messageCollector,
+                    [Queue("refresh-pipeline-runs")] IAsyncCollector<RefreshPipelineRunsCommand> messageCollector,
                     ILogger logger)
         {
             logger.LogInformation("SendUpdatePipelinesCommand - C# HTTP trigger function processed a request.");
             logger.LogDebug($"Request: {JsonConvert.SerializeObject(refreshPipelineRunsRequest)}");
 
-            DownloadPipelineRunsCommand downloadPipelineRunsCommand = new(refreshPipelineRunsRequest.ProjectHash, refreshPipelineRunsRequest.ApiUrl, refreshPipelineRunsRequest.PipelineId);
+            RefreshPipelineRunsCommand downloadPipelineRunsCommand = new(refreshPipelineRunsRequest.ProjectHash, refreshPipelineRunsRequest.ApiUrl, refreshPipelineRunsRequest.PipelineId);
             logger.LogDebug($"Command: {JsonConvert.SerializeObject(downloadPipelineRunsCommand)}");
             await messageCollector.AddAsync(downloadPipelineRunsCommand);
             return;
@@ -66,7 +66,7 @@ namespace Homecloud
 
         [FunctionName("RefreshPipelineRuns")]
         public static async Task ProcessRefreshPipelineRunsCommand(
-            [QueueTrigger("refresh-pipeline-runs")] DownloadPipelineRunsCommand downloadPipelineRunsCommand,
+            [QueueTrigger("refresh-pipeline-runs")] RefreshPipelineRunsCommand downloadPipelineRunsCommand,
             ILogger logger
         )
         {

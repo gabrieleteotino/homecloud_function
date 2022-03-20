@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using Homecloud.Contracts.Commands;
 using Homecloud.Contracts.Messages;
 using Newtonsoft.Json;
 
@@ -15,11 +15,11 @@ namespace Homecloud.Models.Devops
 
     public static class ProjectFactory
     {
-        public static Project CreateProjectFromMessage(Contracts.Messages.CreateProjectCommand commandMessage) =>
+        public static Project CreateProjectFromCommand(CreateProjectCommand commandMessage) =>
             new(Id: Guid.NewGuid(),
                 OrganizationName: commandMessage.Organization,
                 ProjectName: commandMessage.Project,
-                Hash: commandMessage.Hash,
+                Hash: commandMessage.CalculateProjectHash(),
                 CreationDate: DateTime.UtcNow);
     }
 
