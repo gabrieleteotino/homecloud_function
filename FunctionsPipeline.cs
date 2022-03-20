@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Homecloud.Contracts.Messages;
 using Homecloud.Contracts.Requests;
@@ -46,6 +47,35 @@ namespace Homecloud
             await writer.WriteAsync(JsonConvert.SerializeObject(pipelines));
 
             logger.LogInformation("Pipelines data saved");
+        }
+
+        [FunctionName("RefreshPipelineRunsRest")]
+        public static async Task SendRefreshPipelineRunsCommand(
+                    [HttpTrigger(AuthorizationLevel.Function, "post", Route = "RefreshPipelineRuns")] RefreshPipelineRunsRequest refreshPipelineRunsRequest,
+                    [Queue("refresh-pipeline-runs")] IAsyncCollector<DownloadPipelineRunsCommand> messageCollector,
+                    ILogger logger)
+        {
+            logger.LogInformation("SendUpdatePipelinesCommand - C# HTTP trigger function processed a request.");
+            logger.LogDebug($"Request: {JsonConvert.SerializeObject(refreshPipelineRunsRequest)}");
+
+            DownloadPipelineRunsCommand downloadPipelineRunsCommand = new(refreshPipelineRunsRequest.ProjectHash, refreshPipelineRunsRequest.ApiUrl, refreshPipelineRunsRequest.PipelineId);
+            logger.LogDebug($"Command: {JsonConvert.SerializeObject(downloadPipelineRunsCommand)}");
+            await messageCollector.AddAsync(downloadPipelineRunsCommand);
+            return;
+        }
+
+        [FunctionName("RefreshPipelineRuns")]
+        public static async Task ProcessRefreshPipelineRunsCommand(
+            [QueueTrigger("refresh-pipeline-runs")] DownloadPipelineRunsCommand downloadPipelineRunsCommand,
+            ILogger logger
+        )
+        {
+            logger.LogInformation($"ProcessDownloadPipelineRunsCommand - C# Queue trigger function processing command: {JsonConvert.SerializeObject(downloadPipelineRunsCommand)}");
+            var personalAccessToken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
+            var client = new DevopsApiClient(personalAccessToken, downloadPipelineRunsCommand.ApiUrl, logger);
+            var pipelineRuns = await client.ListRuns(downloadPipelineRunsCommand.PipelineId);
+
+            logger.LogInformation($"Downloaded pipeline {downloadPipelineRunsCommand.PipelineId} runs {pipelineRuns.Count()}");
         }
     }
 }
