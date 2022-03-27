@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Homecloud.Contracts.Commands;
 using Homecloud.Contracts.Requests;
@@ -48,6 +49,24 @@ namespace Homecloud
             await writer.WriteAsync(pipelineRuns);
 
             logger.LogInformation("Pipeline runs data saved");
+
+            using JsonDocument runs = JsonDocument.Parse(pipelineRuns);
+            var value = runs.RootElement.GetProperty("value");
+            foreach (var runElement in value.EnumerateArray())
+            {
+                var run = new Models.Devops.Run(
+                    ProjectHash: refreshPipelineRunsCommand.ProjectHash,
+                    PipelineId: runElement.GetProperty("pipeline").GetProperty("id").GetInt32(),
+                    Id: runElement.GetProperty("id").GetInt32(),
+                    Name: runElement.GetProperty("name").GetString(),
+                    State: runElement.GetProperty("state").GetString(),
+                    Result: runElement.GetProperty("result").GetString()
+                );
+                var blobPath = $"pipeline-runs/{run.ProjectHash}/{run.Id}.json";
+                using var runWriter = await binder.BindAsync<TextWriter>(new BlobAttribute(blobPath, FileAccess.Write));
+                await runWriter.WriteAsync(JsonConvert.SerializeObject(run));
+                logger.LogInformation($"Pipeline run {run.Id} saved");
+            }
         }
     }
 }
