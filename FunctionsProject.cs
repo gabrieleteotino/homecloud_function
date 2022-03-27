@@ -8,6 +8,7 @@ using Homecloud.Contracts.Commands;
 using Homecloud.Contracts.Messages;
 using System.Text;
 using System;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Homecloud
 {
@@ -15,7 +16,7 @@ namespace Homecloud
     public static class FunctionsProject
     {
         [FunctionName("CreateProjectRest")]
-        public static void SendCreateProjectCommand(
+        public static IActionResult SendCreateProjectCommand(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "Project")] CreateProjectCommand createProjectCommand,
             [Queue("create-project")] out CreateProjectCommand message,
             ILogger logger)
@@ -25,7 +26,7 @@ namespace Homecloud
 
             message = createProjectCommand;
 
-            return;
+            return new OkResult();
         }
 
         [FunctionName("CreateProject")]
@@ -61,7 +62,7 @@ namespace Homecloud
         {
             logger.LogInformation("ProcessProjectCreatedMessage - C# Queue trigger processing a command");
             var project = JsonConvert.DeserializeObject<Models.Devops.Project>(projectString);
-            if (projectCreated.Hash != project.Hash) throw new InvalidDataException($"Project blob {projectCreated.Hash}.json contains a project with invalid hash");
+            if (projectCreated.ProjectHash != project.Hash) throw new InvalidDataException($"Project blob {projectCreated.ProjectHash}.json contains a project with invalid hash");
 
             var pipelineMessage = new RefreshPipelinesCommand(project.Hash, project.ApiUrl);
             await pipelineMessages.AddAsync(pipelineMessage);

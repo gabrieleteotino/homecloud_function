@@ -3,9 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Homecloud.Contracts.Commands;
-using Homecloud.Contracts.Messages;
 using Homecloud.Contracts.Requests;
-using Homecloud.Contracts.Responses;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
@@ -17,7 +16,7 @@ namespace Homecloud
     public static class FunctionsPipeline
     {
         [FunctionName("UpdatePipelinesRest")]
-        public static PipelineUpdatingResponse SendUpdatePipelinesCommand(
+        public static IActionResult SendUpdatePipelinesCommand(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "UpdatePipelines")] UpdatePipelineRequest updatePipelineRequest,
             [Queue("update-pipelines")] out RefreshPipelinesCommand updatePipelinesCommand,
             ILogger logger)
@@ -25,10 +24,10 @@ namespace Homecloud
             logger.LogInformation("SendUpdatePipelinesCommand - C# HTTP trigger function processed a request.");
             logger.LogDebug($"Request: {JsonConvert.SerializeObject(updatePipelineRequest)}");
 
-            updatePipelinesCommand = new(updatePipelineRequest.Hash, updatePipelineRequest.ApiUrl);
+            updatePipelinesCommand = new(updatePipelineRequest.ProjectHash, updatePipelineRequest.ApiUrl);
             logger.LogDebug($"Command: {JsonConvert.SerializeObject(updatePipelinesCommand)}");
 
-            return new PipelineUpdatingResponse { Hash = updatePipelineRequest.Hash };
+            return new OkResult();
         }
 
         [FunctionName("UpdatePipelines")]
