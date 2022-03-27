@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Azure.Data.Tables;
 using Homecloud.Contracts.Commands;
 using Homecloud.Contracts.Requests;
 using Microsoft.AspNetCore.Mvc;
@@ -34,6 +35,7 @@ namespace Homecloud
         public static async Task ProcessRefreshPipelineRunsCommand(
             [QueueTrigger("refresh-pipeline-runs")] RefreshPipelineRunsCommand refreshPipelineRunsCommand,
             IBinder binder,
+            [Table("runs")] IAsyncCollector<TableEntity> runCollector,
             ILogger logger
         )
         {
@@ -53,7 +55,7 @@ namespace Homecloud
             sw.Start();
             using JsonDocument runs = JsonDocument.Parse(pipelineRuns);
             var value = runs.RootElement.GetProperty("value");
-            foreach (var runElement in value.EnumerateArray())
+              foreach (var runElement in value.EnumerateArray())
             {
                 var run = new Models.Devops.Run(
                     ProjectHash: refreshPipelineRunsCommand.ProjectHash,
@@ -63,9 +65,11 @@ namespace Homecloud
                     State: runElement.GetProperty("state").GetString(),
                     Result: runElement.GetProperty("result").GetString()
                 );
-                var blobPath = $"pipeline-runs/{run.ProjectHash}/{run.Id}.json";
-                using var runWriter = await binder.BindAsync<TextWriter>(new BlobAttribute(blobPath, FileAccess.Write));
-                await runWriter.WriteAsync(JsonConvert.SerializeObject(run));
+
+                await runCollector.AddAsync(new TableEntity(run.ProjectHash, run.Id.ToString())
+                {
+                    ["Json"] = JsonConvert.SerializeObject(run)
+                });
             }
             sw.Stop();
             logger.LogInformation($"Pipeline runs processed in {sw.ElapsedMilliseconds}ms");
