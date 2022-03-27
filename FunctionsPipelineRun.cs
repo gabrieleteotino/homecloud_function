@@ -32,16 +32,22 @@ namespace Homecloud
 
         [FunctionName("RefreshPipelineRuns")]
         public static async Task ProcessRefreshPipelineRunsCommand(
-            [QueueTrigger("refresh-pipeline-runs")] RefreshPipelineRunsCommand downloadPipelineRunsCommand,
+            [QueueTrigger("refresh-pipeline-runs")] RefreshPipelineRunsCommand refreshPipelineRunsCommand,
+            IBinder binder,
             ILogger logger
         )
         {
-            logger.LogInformation($"ProcessDownloadPipelineRunsCommand - C# Queue trigger function processing command: {JsonConvert.SerializeObject(downloadPipelineRunsCommand)}");
+            logger.LogInformation($"ProcessRefreshPipelineRunsCommand - C# Queue trigger function processing command: {JsonConvert.SerializeObject(refreshPipelineRunsCommand)}");
             var personalAccessToken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
-            var client = new DevopsApiClient(personalAccessToken, downloadPipelineRunsCommand.ApiUrl, logger);
-            var pipelineRuns = await client.ListRuns(downloadPipelineRunsCommand.PipelineId);
+            var client = new DevopsApiClient(personalAccessToken, refreshPipelineRunsCommand.ApiUrl, logger);
+            var pipelineRuns = await client.ListRuns(refreshPipelineRunsCommand.PipelineId);
 
-            logger.LogInformation($"Downloaded pipeline {downloadPipelineRunsCommand.PipelineId} runs {pipelineRuns.Count()}");
+            logger.LogInformation("Pipeline runs data received");
+
+            using var writer = await binder.BindAsync<TextWriter>(new BlobAttribute($"pipeline-runs-data/{refreshPipelineRunsCommand.ProjectHash}/{refreshPipelineRunsCommand.PipelineId}.json", FileAccess.Write));
+            await writer.WriteAsync(pipelineRuns);
+
+            logger.LogInformation("Pipeline runs data saved");
         }
     }
 }

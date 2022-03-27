@@ -16,9 +16,7 @@ namespace Homecloud.Contracts.Commands
     }
 
     public record CreateProjectCommand(string Organization, string Project);
-
-    public record RefreshPipelineRunsCommand(string ProjectHash, string ApiUrl, int PipelineId);
-
     public record RefreshPipelinesCommand(string ProjectHash, string ApiUrl);
-
+    public record RefreshPipelineRunsCommand(string ProjectHash, string ApiUrl, int PipelineId);
+    public record RefreshPipelineRunCommand(string ProjectHash, string ApiUrl, int PipelineId, int RunId);
 }

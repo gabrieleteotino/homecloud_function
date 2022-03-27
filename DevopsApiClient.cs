@@ -38,9 +38,9 @@ namespace Homecloud
             return result.Value;
         }
 
-        internal async Task<IEnumerable<Models.DevopsApi.Run>> ListRuns(int pipelineId)
+        internal async Task<string> ListRuns(int pipelineId)
         {
-            var uri = $"{_baseUrl}/pipelines/{pipelineId}/runs?api-version=6.0-preview.1";
+            var uri = $"{_baseUrl}/pipelines/{pipelineId}/runs?api-version=7.1-preview.1";
             _logger.LogDebug("URI: {uri}", uri);
             var client = GetClient();
 
@@ -50,10 +50,7 @@ namespace Homecloud
             HttpResponseMessage response = await client.SendAsync(request);
             _logger.LogInformation($"Status code: {response.StatusCode} reason: {response.ReasonPhrase}");
 
-            var result = await response.Content.ReadAsAsync<Models.DevopsApi.RunsResponse>();
-            _logger.LogInformation($"Results len: {result.Count}");
-
-            return result.Value;
+            return await response.Content.ReadAsStringAsync();
         }
 
         private HttpClient GetClient()
