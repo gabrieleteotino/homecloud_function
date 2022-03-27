@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Homecloud.Contracts.Commands;
@@ -50,6 +49,8 @@ namespace Homecloud
 
             logger.LogInformation("Pipeline runs data saved");
 
+            var sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
             using JsonDocument runs = JsonDocument.Parse(pipelineRuns);
             var value = runs.RootElement.GetProperty("value");
             foreach (var runElement in value.EnumerateArray())
@@ -65,8 +66,9 @@ namespace Homecloud
                 var blobPath = $"pipeline-runs/{run.ProjectHash}/{run.Id}.json";
                 using var runWriter = await binder.BindAsync<TextWriter>(new BlobAttribute(blobPath, FileAccess.Write));
                 await runWriter.WriteAsync(JsonConvert.SerializeObject(run));
-                logger.LogInformation($"Pipeline run {run.Id} saved");
             }
+            sw.Stop();
+            logger.LogInformation($"Pipeline runs processed in {sw.ElapsedMilliseconds}ms");
         }
     }
 }
