@@ -55,7 +55,7 @@ namespace Homecloud
         [FunctionName("ProjectCreated")]
         public static async Task ProcessProjectCreatedMessage(
             [QueueTrigger("project-created")] ProjectCreatedMessage projectCreated,
-            [Blob("projects/{Hash}.json", FileAccess.Read)] string projectString,
+            [Blob("projects/{ProjectHash}.json", FileAccess.Read)] string projectString,
             [Queue("refresh-pipelines")] IAsyncCollector<RefreshPipelinesCommand> pipelineMessages,
             ILogger logger
         )
