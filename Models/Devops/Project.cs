@@ -25,7 +25,7 @@ namespace Homecloud.Models.Devops
 
     public static class ProjectExtensions
     {
-        public static Project ProcessPipelineUpdated(this Project project, PipelineUpdatedMessage message) =>
+        public static Project ProcessPipelineUpdated(this Project project, PipelineRefreshedMessage message) =>
             project with
             {
                 PipelinesCount = message.Count

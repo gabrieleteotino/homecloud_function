@@ -1,5 +1,5 @@
 namespace Homecloud.Contracts.Messages
 {
-    public record PipelineUpdatedMessage(string ProjectHash, int Count);
     public record ProjectCreatedMessage(string ProjectHash);
+    public record PipelineRefreshedMessage(string ProjectHash, int Count);
 }

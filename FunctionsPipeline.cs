@@ -15,66 +15,39 @@ namespace Homecloud
     [StorageAccount("DataStorage")]
     public static class FunctionsPipeline
     {
-        [FunctionName("UpdatePipelinesRest")]
-        public static IActionResult SendUpdatePipelinesCommand(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "UpdatePipelines")] UpdatePipelineRequest updatePipelineRequest,
-            [Queue("update-pipelines")] out RefreshPipelinesCommand updatePipelinesCommand,
+        [FunctionName("RefreshPipelinesRest")]
+        public static IActionResult SendRefreshPipelinesCommand(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "UpdatePipelines")] RefreshPipelineRequest updatePipelineRequest,
+            [Queue("refresh-pipelines")] out RefreshPipelinesCommand refreshPipelinesCommand,
             ILogger logger)
         {
             logger.LogInformation("SendUpdatePipelinesCommand - C# HTTP trigger function processed a request.");
             logger.LogDebug($"Request: {JsonConvert.SerializeObject(updatePipelineRequest)}");
 
-            updatePipelinesCommand = new(updatePipelineRequest.ProjectHash, updatePipelineRequest.ApiUrl);
-            logger.LogDebug($"Command: {JsonConvert.SerializeObject(updatePipelinesCommand)}");
+            refreshPipelinesCommand = new(updatePipelineRequest.ProjectHash, updatePipelineRequest.ApiUrl);
+            logger.LogDebug($"Command: {JsonConvert.SerializeObject(refreshPipelinesCommand)}");
 
             return new OkResult();
         }
 
-        [FunctionName("UpdatePipelines")]
+        [FunctionName("RefreshPipelines")]
         public static async Task ProcessUpdatePipelinesCommand(
-            [QueueTrigger("update-pipelines")] RefreshPipelinesCommand updatePipelinesCommand,
+            [QueueTrigger("refresh-pipelines")] RefreshPipelinesCommand refreshPipelinesCommand,
             IBinder binder,
             ILogger logger)
         {
-            logger.LogInformation($"ProcessUpdatePipelinesCommand - C# Queue trigger function processing command: {JsonConvert.SerializeObject(updatePipelinesCommand)}");
+            logger.LogInformation($"ProcessUpdatePipelinesCommand - C# Queue trigger function processing command: {JsonConvert.SerializeObject(refreshPipelinesCommand)}");
             var personalAccessToken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
-            var client = new DevopsApiClient(personalAccessToken, updatePipelinesCommand.ApiUrl, logger);
+            var client = new DevopsApiClient(personalAccessToken, refreshPipelinesCommand.ApiUrl, logger);
             var pipelines = await client.ListPipelines();
             logger.LogInformation("Pipelines data received");
 
-            using var writer = await binder.BindAsync<TextWriter>(new BlobAttribute($"pipelines-data/{updatePipelinesCommand.ProjectHash}", FileAccess.Write));
+            using var writer = await binder.BindAsync<TextWriter>(new BlobAttribute($"pipelines-data/{refreshPipelinesCommand.ProjectHash}", FileAccess.Write));
             await writer.WriteAsync(JsonConvert.SerializeObject(pipelines));
 
             logger.LogInformation("Pipelines data saved");
-        }
 
-        [FunctionName("RefreshPipelineRunsRest")]
-        public static async Task SendRefreshPipelineRunsCommand(
-                    [HttpTrigger(AuthorizationLevel.Function, "post", Route = "RefreshPipelineRuns")] RefreshPipelineRunsRequest refreshPipelineRunsRequest,
-                    [Queue("refresh-pipeline-runs")] IAsyncCollector<RefreshPipelineRunsCommand> messageCollector,
-                    ILogger logger)
-        {
-            logger.LogInformation("SendUpdatePipelinesCommand - C# HTTP trigger function processed a request.");
-            logger.LogDebug($"Request: {JsonConvert.SerializeObject(refreshPipelineRunsRequest)}");
-
-            RefreshPipelineRunsCommand downloadPipelineRunsCommand = new(refreshPipelineRunsRequest.ProjectHash, refreshPipelineRunsRequest.ApiUrl, refreshPipelineRunsRequest.PipelineId);
-            logger.LogDebug($"Command: {JsonConvert.SerializeObject(downloadPipelineRunsCommand)}");
-            await messageCollector.AddAsync(downloadPipelineRunsCommand);
-            return;
-        }
-
-        [FunctionName("RefreshPipelineRuns")]
-        public static async Task ProcessRefreshPipelineRunsCommand(
-            [QueueTrigger("refresh-pipeline-runs")] RefreshPipelineRunsCommand downloadPipelineRunsCommand,
-            ILogger logger
-        )
-        {
-            logger.LogInformation($"ProcessDownloadPipelineRunsCommand - C# Queue trigger function processing command: {JsonConvert.SerializeObject(downloadPipelineRunsCommand)}");
-            var personalAccessToken = Environment.GetEnvironmentVariable("DevOpsPat", EnvironmentVariableTarget.Process);
-            var client = new DevopsApiClient(personalAccessToken, downloadPipelineRunsCommand.ApiUrl, logger);
-            var pipelineRuns = await client.ListRuns(downloadPipelineRunsCommand.PipelineId);
-
-            logger.LogInformation($"Downloaded pipeline {downloadPipelineRunsCommand.PipelineId} runs {pipelineRuns.Count()}");
+            // TODO send message 
         }
     }
 }
